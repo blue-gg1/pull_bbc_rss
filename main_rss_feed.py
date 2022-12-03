@@ -1,23 +1,35 @@
 import requests
-import sys
 import re
-from datetime import datetime
+import time
 import os
 
-now = datetime.now()
-dt_string = now.strftime("%d-%m-%Y_%H")
-print(dt_string)
+# Constants
+PODCAST_RSS_URL = "https://podcast.voice.api.bbci.co.uk/rss/audio/p002vsmz?api_key=Wbek5zSqxz0Hk1blo5IBqbd9SCWIfNbT"
+AUDIO_FILE_REGEX = re.compile(r"https://open.*[mp3]")
+FILE_NAME_FORMAT = "%d-%m-%Y_%H"
 
+# Download the podcast's RSS feed
+try:
+    response = requests.get(PODCAST_RSS_URL)
+    response.raise_for_status()
+except requests.exceptions.RequestException as error:
+    print(f"Error downloading RSS feed: {error}")
+    sys.exit(1)
 
+# Extract the URL of the audio file from the RSS feed
+matches = AUDIO_FILE_REGEX.findall(response.text)
+if not matches:
+    print("No audio files found in RSS feed")
+    sys.exit(1)
 
-feedurl = "https://podcast.voice.api.bbci.co.uk/rss/audio/p002vsmz?api_key=Wbek5zSqxz0Hk1blo5IBqbd9SCWIfNbT"
-bbccontent = requests.get(feedurl)
-locationmp3 = re.findall('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\), ]|(?:%[0-9a-fA-F][0-9a-fA-F]))+' ,bbccontent.text)[6]
-print(locationmp3)
+# Download the audio file
+try:
+    response = requests.get(matches[0], stream=True)
+    response.raise_for_status()
+except requests.exceptions.RequestException as error:
+    print(f"Error downloading audio file: {error}")
+    sys.exit(1)
 
-empethree = requests.get(locationmp3)
-print("done downloading")
-
-
-with open('/proj/rss/mp3/'+dt_string+'.mp3','wb') as f:
-    f.write(empethree.content) 
+# Generate a filename using the current date and time
+file_name = time.strftime(FILE_NAME_FORMAT)
+file_path = os.path.join("/proj/rss/mp3/", file_name + ".
